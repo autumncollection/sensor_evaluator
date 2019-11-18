@@ -1,6 +1,7 @@
 # frozen_string_literal: true
-require 'time'
+
 require 'active_support/core_ext/string/inflections'
+require 'time'
 
 require 'types/compute_temperature'
 require 'types/compute_monoxide'
@@ -24,11 +25,11 @@ private
 
   def read_content
     @log_content.split(/thermometer|humidity|monoxide/).each_with_object({}) do |splitted, mem|
-        if splitted =~ /reference/
-          read_reference
-        else
-          mem.merge!(read_data(splitted))
-        end
+      if splitted =~ /reference/
+        read_reference
+      else
+        mem.merge!(read_data(splitted))
+      end
     end
   end
 
@@ -57,7 +58,7 @@ private
       when /mon/
         :monoxide
       else
-        raise(UnknownDataType, "#{name}")
+        raise(UnknownDataType, name.to_s)
     end
   end
 

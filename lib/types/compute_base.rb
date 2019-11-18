@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_support/core_ext/object/blank'
 
 class ComputeBase
@@ -20,17 +22,23 @@ private
   end
 
   def compute_edge_deviation(values)
-    values.map do |value|
-      (@reference_data[key] - value).abs
-    end.max
+    values.map { |value| (@reference_data[key] - value).abs }.max
   end
 
   def recognize(deviation = nil, mean = nil)
+    return nil if @data.blank?
+
     standards.each do |name, criteria|
+      # the last condition = else
       return name if criteria.blank?
-      return name if (!criteria[:deviation] || value_between?(deviation, criteria[:deviation])) &&
-                     (!criteria[:mean] || value_between?(mean, criteria[:mean]))
+      # otherwise data fit
+      return name if data_fit?(mean, deviation, criteria)
     end
+  end
+
+  def data_fit?(mean, deviation, criteria)
+    (!criteria[:deviation] || value_between?(deviation, criteria[:deviation])) &&
+      (!criteria[:mean] || value_between?(mean, criteria[:mean]))
   end
 
   def value_between?(value, criteria)

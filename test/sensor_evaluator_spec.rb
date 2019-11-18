@@ -65,7 +65,6 @@ describe SensorEvaluator do
     end
   end
 
-
   describe 'unknown data type' do
     let(:test_file) { 'unknown_data_type' }
 
