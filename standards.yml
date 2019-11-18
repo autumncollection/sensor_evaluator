@@ -1,0 +1,16 @@
+---
+  STANDARDS:
+    temperature:
+      ultraprecise:
+        mean: 0.5
+        deviation: 3
+      precise:
+        mean: 0.5
+        deviation: 5
+    humidity:
+      keep:
+        deviation: 1
+      discard:
+    monoxide:
+      keep: 3
+      discard:
