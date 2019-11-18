@@ -1,67 +1,114 @@
 # frozen_string_literal: true
 require 'time'
 class MissingDataReference < ArgumentError; end
+class UnknownDataType < ArgumentError; end
 
 class SensorEvaluator
+  STANDARDS = {
+    temperature: {
+      ultraprecise: {
+        mean: 0.5, deviation: 3
+      },
+      very_precise: {
+        mean: 0.5, deviation: 5
+      },
+      precise: {}
+    },
+    humidity: {
+      keep: { deviation: 1 },
+      discard: {}
+    },
+    monoxide: {
+      keep: { deviation: 3 },
+      discard: {}
+    }
+  }
   def initialize(log_content)
     @log_content = log_content
   end
 
   def perform
-    read_content
+    JSON.generate(read_content)
   end
 
 private
 
   def read_content
-    @log_content.split(/thermometer|humidity|monoxide/).each do |splitted|
-      case splitted
-        when /reference/
+    @log_content.split(/thermometer|humidity|monoxide/).each_with_object({}) do |splitted, mem|
+        if splitted =~ /reference/
           read_reference
         else
-          read_data(splitted)
+          mem.merge!(read_data(splitted))
         end
     end
   end
 
   def read_data(splitted)
     lines = splitted.lines
-    name  = lines.shift
-    data = lines.each_with_object({}) do |line, mem|
-      time, value = *line.split(" ")
-      puts "#{time} #{value}"
-      mem[Time.parse(time)] = value.to_f
+    name  = lines.shift.strip
+    { name => send(
+      "compute_#{recognize_type(name)}".to_sym,
+      lines.map { |line| line.split(" ")[-1].to_f }) }
+  end
+
+  def recognize_type(name)
+    case name
+      when /temp/
+        :temperature
+      when /hum/
+        :humidity
+      when /mon/
+        :monoxide
+      else
+        raise(UnknownDataType, "#{name}")
     end
-    { name: compute_temp(data) }
   end
 
-  def compute_temp(data)
-    avg = compute_avg(data.values)
-    deviation = compute_deviation(data.values)
-    { name: recognize_temp(avg, deviation) }
+  def compute_monoxide(data)
+    deviation = compute_edge_deviation(:monoxide, data)
+    recognize(:monoxide, deviation)
   end
 
-  def compute_avg(values)
-    avg = values.inject(0.0) { |sum, value| sum + value } / values.size
-    return true if avg > @reference_data[:temperature] - 0.5 &&
-      avg < @reference_data[:temperature] + 0.5
-    false
-  end
-
-  def compute_deviation(values)
-    values.each do |value|
-      return false if value < @reference_data[:temperature] - 3 ||
-        value > @reference_data[:temperature] + 3
-
-      return true
+  def recognize(type, deviation, mean = nil)
+    STANDARDS[type].each do |name, criteria|
+      return name if criteria.empty?
+      return name if (!criteria[:deviation] || value_between?(deviation, criteria[:deviation], type)) &&
+                     (!criteria[:mean] || value_between?(mean, criteria[:mean], type))
     end
+  end
+
+  def compute_humidity(data)
+    deviation = compute_edge_deviation(:humidity, data)
+    recognize(:humidity, deviation)
+  end
+
+  def compute_temperature(data)
+    recognize(
+      :temperature,
+      compute_edge_deviation(:temperature, data),
+      compute_avg(:temperature, data))
+  end
+
+  def value_between?(value, criteria, _type)
+    value <= criteria
+  end
+
+  def compute_avg(type, values)
+    (@reference_data[type] - \
+      values.inject(0.0) { |sum, value| sum + value } / values.size).abs
+  end
+
+  def compute_edge_deviation(type, values)
+    values.map do |value|
+      (@reference_data[type] - value).abs
+    end.max
   end
 
   def read_reference
     raise MissingDataReference unless \
-      @log_content.match(/reference (?<temperature>[\d.]+)\s(?<humidity>[\d.]+)\s(?<carbon_monoxide>[\d.]+)/)
+      @log_content.match(/reference (?<temperature>[\d.]+)\s(?<humidity>[\d.]+)\s(?<monoxide>[\d.]+)/)
 
-    @reference_data = %i[temperature humidity carbon_monoxide].each_with_object({}) do |key, mem|
+    @reference_data = %i[temperature humidity monoxide].each_with_object({}) do |key, mem|
       mem[key] = Regexp.last_match(key).to_f
     end
   end

@@ -6,7 +6,11 @@ describe SensorEvaluator do
   let(:klass) { described_class.new(test_file) }
   subject { klass.perform }
 
-  it '' do
-    subject
+  RSpec.shared_examples 'is the type' do
+
+  end
+
+  it 'temp-1 is precise' do
+    puts subject
   end
 end
