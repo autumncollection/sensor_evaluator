@@ -40,4 +40,20 @@ private
   def standards
     STANDARDS[key]
   end
+
+  def compute_deviation?
+    return @compute_deviation if defined?(@compute_deviation)
+
+    @compute_deviation = what_compute(:deviation)
+  end
+
+  def compute_avg?
+    return @compute_avg if defined?(@compute_avg)
+
+    @compute_avg = what_compute(:mean)
+  end
+
+  def what_compute(what)
+    !standards.values.count { |item| item && item[what].present? }.zero?
+  end
 end
