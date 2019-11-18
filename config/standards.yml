@@ -1,7 +1,7 @@
 ---
   STANDARDS:
     temperature:
-      ultraprecise:
+      ultra_precise:
         mean: 0.5
         deviation: 3
       very_precise:

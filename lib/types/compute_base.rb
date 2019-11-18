@@ -9,7 +9,7 @@ class ComputeBase
   def compute
     recognize(
       compute_deviation? ? compute_edge_deviation(@data) : nil,
-      compute_avg? ? compute_avg(@data) : nil).to_s
+      compute_avg? ? compute_avg(@data) : nil).to_s.gsub('_', ' ')
   end
 
 private

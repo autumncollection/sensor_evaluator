@@ -35,9 +35,13 @@ private
   def read_data(splitted)
     lines = splitted.lines
     name  = lines.shift.strip
-    { name.to_s => Object.const_get(
-      "compute_#{recognize_type(name)}".classify).new(
-        values(lines), @reference_data).compute }
+    { name.to_s => compute_data(lines, name) }
+  end
+
+  def compute_data(lines, name)
+    Object.const_get("compute_#{recognize_type(name)}".classify).new(
+      values(lines),
+      @reference_data).compute
   end
 
   def values(lines)
@@ -58,7 +62,7 @@ private
   end
 
   def read_reference
-    raise MissingDataReference unless \
+    raise(MissingDataReference) unless \
       @log_content.match(/reference (?<temperature>[\d.]+)\s(?<humidity>[\d.]+)\s(?<monoxide>[\d.]+)/)
 
     @reference_data = %i[temperature humidity monoxide].each_with_object({}) do |key, mem|

@@ -23,7 +23,7 @@ describe SensorEvaluator do
 
     context 'temp-1' do
       let(:key) { 'temp-2' }
-      let(:assumption) { 'ultraprecise' }
+      let(:assumption) { 'ultra precise' }
 
       it_behaves_like 'contains right data'
     end
