@@ -3,7 +3,7 @@
 require 'active_support/core_ext/string/inflections'
 require 'time'
 
-require 'types/compute_temperature'
+require 'types/compute_thermometer'
 require 'types/compute_monoxide'
 require 'types/compute_humidity'
 
@@ -13,6 +13,8 @@ class MissingDataReference < ArgumentError; end
 class UnknownDataType < ArgumentError; end
 
 class SensorEvaluator
+  REFERENCE_REGEXP = /reference/.freeze
+
   def initialize(log_content)
     @log_content = log_content
   end
@@ -24,8 +26,8 @@ class SensorEvaluator
 private
 
   def read_content
-    @log_content.split(/thermometer|humidity|monoxide/).each_with_object({}) do |splitted, mem|
-      if splitted =~ /reference/
+    @log_content.split(split_regexp).each_with_object({}) do |splitted, mem|
+      if splitted =~ REFERENCE_REGEXP
         read_reference
       else
         mem.merge!(read_data(splitted))
@@ -50,24 +52,35 @@ private
   end
 
   def recognize_type(name)
-    case name
-      when /temp/
-        :temperature
-      when /hum/
-        :humidity
-      when /mon/
-        :monoxide
-      else
-        raise(UnknownDataType, name.to_s)
+    STANDARDS.each do |key, config|
+      return key.to_sym if name =~ Regexp.new(config[:recognize_regexp])
     end
+    raise(UnknownDataType, name.to_s)
   end
 
   def read_reference
-    raise(MissingDataReference) unless \
-      @log_content.match(/reference (?<temperature>[\d.]+)\s(?<humidity>[\d.]+)\s(?<monoxide>[\d.]+)/)
+    raise(MissingDataReference) unless @log_content.match(reference_regexp)
 
-    @reference_data = %i[temperature humidity monoxide].each_with_object({}) do |key, mem|
-      mem[key] = Regexp.last_match(key).to_f
+    @reference_data = reference.each_with_object({}) do |key, mem|
+      mem[key.to_sym] = Regexp.last_match(key.to_sym).to_f
     end
+  end
+
+  def reference_regexp
+    standards = reference.map do |name|
+      "(?<#{name}>[\\d.]+)"
+    end.join("\\s")
+
+    Regexp.new("reference #{standards}")
+  end
+
+  def reference
+    @reference ||= STANDARDS.sort_by { |_, config| config[:position] }.to_h.keys
+  end
+
+  def split_regexp
+    Regexp.new(STANDARDS.map do |_, config|
+      config[:split_regexp]
+    end.join('|'))
   end
 end

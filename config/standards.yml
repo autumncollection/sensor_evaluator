@@ -1,18 +1,30 @@
 ---
   STANDARDS:
-    temperature:
-      ultra_precise:
-        mean: 0.5
-        deviation: 3
-      very_precise:
-        mean: 0.5
-        deviation: 5
-      precise:
-    humidity:
-      keep:
-        deviation: 1
-      discard:
+    thermometer:
+      position: 1
+      split_regexp: thermometer
+      recognize_regexp: temp
+      criteria:
+        ultra_precise:
+          mean: 0.5
+          deviation: 3
+        very_precise:
+          mean: 0.5
+          deviation: 5
+        precise:
     monoxide:
-      keep:
-        deviation: 3
-      discard:
+      position: 3
+      recognize_regexp: mon
+      split_regexp: monoxide
+      criteria:
+        keep:
+          deviation: 3
+        discard:
+    humidity:
+      position: 2
+      split_regexp: humidity
+      recognize_regexp: hum
+      criteria:
+        keep:
+          deviation: 1
+        discard:

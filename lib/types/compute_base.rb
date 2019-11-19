@@ -10,7 +10,7 @@ class ComputeBase
 
   def compute
     recognize(
-      compute_deviation? ? compute_edge_deviation(@data) : nil,
+      compute_deviation? ? compute_max_deviation(@data) : nil,
       compute_avg? ? compute_avg(@data) : nil).to_s.gsub('_', ' ')
   end
 
@@ -21,47 +21,47 @@ private
       values.inject(0.0) { |sum, value| sum + value } / values.size).abs
   end
 
-  def compute_edge_deviation(values)
+  def compute_max_deviation(values)
     values.map { |value| (@reference_data[key] - value).abs }.max
   end
 
   def recognize(deviation = nil, mean = nil)
     return nil if @data.blank?
 
-    standards.each do |name, criteria|
+    standards[:criteria].each do |name, config|
       # the last condition = else
-      return name if criteria.blank?
+      return name if config.blank?
       # otherwise data fit
-      return name if data_fit?(mean, deviation, criteria)
+      return name if data_fit?(mean, deviation, config)
     end
   end
 
   def data_fit?(mean, deviation, criteria)
-    (!criteria[:deviation] || value_between?(deviation, criteria[:deviation])) &&
-      (!criteria[:mean] || value_between?(mean, criteria[:mean]))
+    (!criteria[:deviation] || value_within?(deviation, criteria[:deviation])) &&
+      (!criteria[:mean] || value_within?(mean, criteria[:mean]))
   end
 
-  def value_between?(value, criteria)
+  def value_within?(value, criteria)
     value <= criteria
+  end
+
+  def compute_deviation?
+    @compute_deviation ||= compute?(:deviation)
+  end
+
+  def compute_avg?
+    @compute_avg ||= compute?(:mean)
+  end
+
+  def compute?(what)
+    !standards[:criteria].values.count { |item| item && item[what].present? }.zero?
   end
 
   def standards
     STANDARDS[key]
   end
 
-  def compute_deviation?
-    return @compute_deviation if defined?(@compute_deviation)
-
-    @compute_deviation = what_compute(:deviation)
-  end
-
-  def compute_avg?
-    return @compute_avg if defined?(@compute_avg)
-
-    @compute_avg = what_compute(:mean)
-  end
-
-  def what_compute(what)
-    !standards.values.count { |item| item && item[what].present? }.zero?
+  def key
+    self.class::KEY
   end
 end
